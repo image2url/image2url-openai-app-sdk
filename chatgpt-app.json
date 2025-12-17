@@ -1,0 +1,95 @@
+{
+  "name": "Image2URL",
+  "description": "将图片转换为永久可分享的URL链接，支持从任意图片URL快速上传到云存储",
+  "version": "1.0.0",
+  "author": "Image2URL Team",
+  "website": "https://image2url.com",
+  "category": "Productivity",
+  "tags": ["image", "hosting", "url", "cloud", "storage"],
+  "mcp_server": {
+    "command": "node",
+    "args": ["dist/index.js"],
+    "env": {
+      "R2_ACCOUNT_ID": "{{R2_ACCOUNT_ID}}",
+      "R2_ACCESS_KEY_ID": "{{R2_ACCESS_KEY_ID}}",
+      "R2_SECRET_ACCESS_KEY": "{{R2_SECRET_ACCESS_KEY}}",
+      "R2_BUCKET_NAME": "{{R2_BUCKET_NAME}}",
+      "R2_PUBLIC_URL": "{{R2_PUBLIC_URL}}",
+      "PORT": "3001",
+      "HOST": "0.0.0.0"
+    }
+  },
+  "tools": [
+    {
+      "name": "upload_image",
+      "description": "上传图片并转换为永久URL",
+      "parameters": {
+        "image_url": {
+          "type": "string",
+          "description": "图片的URL地址",
+          "required": true
+        },
+        "filename": {
+          "type": "string",
+          "description": "自定义文件名（可选，不含扩展名）",
+          "required": false
+        }
+      },
+      "examples": [
+        {
+          "description": "上传网络图片",
+          "parameters": {
+            "image_url": "https://example.com/image.jpg",
+            "filename": "my-custom-name"
+          }
+        },
+        {
+          "description": "上传图片使用默认文件名",
+          "parameters": {
+            "image_url": "https://example.com/photo.png"
+          }
+        }
+      ]
+    },
+    {
+      "name": "get_image_info",
+      "description": "获取已上传图片的详细信息",
+      "parameters": {
+        "image_url": {
+          "type": "string",
+          "description": "已上传图片的URL地址",
+          "required": true
+        }
+      },
+      "examples": [
+        {
+          "description": "获取图片信息",
+          "parameters": {
+            "image_url": "https://your-bucket.r2.dev/images/1234567890-uuid.jpg"
+          }
+        }
+      ]
+    }
+  ],
+  "conversation_starters": [
+    "帮我把这张图片上传到云端：[图片URL]",
+    "我需要为这张图片生成永久链接",
+    "批量上传这些图片并返回链接",
+    "查看这张上传图片的详细信息",
+    "把我的图片转换为可分享的URL"
+  ],
+  "capabilities": [
+    "支持多种图片格式：JPEG, PNG, GIF, WebP, SVG等",
+    "自动生成唯一文件名防止冲突",
+    "全球CDN加速访问",
+    "永久存储，链接不会过期",
+    "文件大小和类型验证",
+    "详细的图片元数据信息"
+  ],
+  "privacy_policy": "https://image2url.com/privacy",
+  "terms_of_service": "https://image2url.com/terms",
+  "support": {
+    "email": "support@image2url.com",
+    "website": "https://image2url.com/support"
+  }
+}

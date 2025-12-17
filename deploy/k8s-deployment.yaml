@@ -1,0 +1,104 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: image2url-mcp-server
+  labels:
+    app: image2url-mcp-server
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: image2url-mcp-server
+  template:
+    metadata:
+      labels:
+        app: image2url-mcp-server
+    spec:
+      containers:
+      - name: mcp-server
+        image: image2url/mcp-server:latest
+        ports:
+        - containerPort: 3001
+        env:
+        - name: R2_ACCOUNT_ID
+          valueFrom:
+            secretKeyRef:
+              name: r2-credentials
+              key: account-id
+        - name: R2_ACCESS_KEY_ID
+          valueFrom:
+            secretKeyRef:
+              name: r2-credentials
+              key: access-key-id
+        - name: R2_SECRET_ACCESS_KEY
+          valueFrom:
+            secretKeyRef:
+              name: r2-credentials
+              key: secret-access-key
+        - name: R2_BUCKET_NAME
+          valueFrom:
+            configMapKeyRef:
+              name: app-config
+              key: bucket-name
+        - name: R2_PUBLIC_URL
+          valueFrom:
+            configMapKeyRef:
+              name: app-config
+              key: public-url
+        - name: PORT
+          value: "3001"
+        - name: HOST
+          value: "0.0.0.0"
+        resources:
+          requests:
+            memory: "128Mi"
+            cpu: "100m"
+          limits:
+            memory: "512Mi"
+            cpu: "500m"
+        livenessProbe:
+          httpGet:
+            path: /health
+            port: 3001
+          initialDelaySeconds: 30
+          periodSeconds: 10
+        readinessProbe:
+          httpGet:
+            path: /health
+            port: 3001
+          initialDelaySeconds: 5
+          periodSeconds: 5
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: image2url-mcp-service
+spec:
+  selector:
+    app: image2url-mcp-server
+  ports:
+    - protocol: TCP
+      port: 80
+      targetPort: 3001
+  type: ClusterIP
+
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: app-config
+data:
+  bucket-name: "your-bucket-name"
+  public-url: "https://your-bucket.r2.dev"
+
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: r2-credentials
+type: Opaque
+data:
+  account-id: <base64-encoded-account-id>
+  access-key-id: <base64-encoded-access-key-id>
+  secret-access-key: <base64-encoded-secret-access-key>
