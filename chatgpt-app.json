@@ -1,11 +1,11 @@
 {
   "name": "Image2URL",
-  "description": "将图片转换为永久可分享的URL链接，支持从任意图片URL快速上传到云存储",
+  "description": "将图片转换为永久可分享的URL链接，支持从URL上传或直接上传文件到云存储",
   "version": "1.0.0",
   "author": "Image2URL Team",
   "website": "https://image2url.com",
   "category": "Productivity",
-  "tags": ["image", "hosting", "url", "cloud", "storage"],
+  "tags": ["image", "hosting", "url", "cloud", "storage", "file-upload", "base64"],
   "mcp_server": {
     "command": "node",
     "args": ["dist/index.js"],
@@ -22,31 +22,75 @@
   "tools": [
     {
       "name": "upload_image",
-      "description": "上传图片并转换为永久URL",
+      "description": "上传图片并转换为永久URL（支持URL或base64数据）",
       "parameters": {
         "image_url": {
           "type": "string",
-          "description": "图片的URL地址",
-          "required": true
+          "description": "图片的URL地址（与image_data二选一）",
+          "required": false
+        },
+        "image_data": {
+          "type": "string",
+          "description": "Base64编码的图片数据（与image_url二选一）",
+          "required": false
         },
         "filename": {
           "type": "string",
-          "description": "自定义文件名（可选，不含扩展名）",
+          "description": "自定义文件名（使用image_data时必需，不含扩展名）",
           "required": false
         }
       },
       "examples": [
         {
-          "description": "上传网络图片",
+          "description": "从URL上传网络图片",
           "parameters": {
             "image_url": "https://example.com/image.jpg",
             "filename": "my-custom-name"
           }
         },
         {
+          "description": "从base64数据上传图片",
+          "parameters": {
+            "image_data": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg==",
+            "filename": "test-image"
+          }
+        },
+        {
           "description": "上传图片使用默认文件名",
           "parameters": {
             "image_url": "https://example.com/photo.png"
+          }
+        }
+      ]
+    },
+    {
+      "name": "upload_file",
+      "description": "直接上传文件并转换为永久URL",
+      "parameters": {
+        "image_data": {
+          "type": "string",
+          "description": "Base64编码的图片数据（支持data URL格式或原始base64）",
+          "required": true
+        },
+        "filename": {
+          "type": "string",
+          "description": "原始文件名（含扩展名，如：photo.jpg）",
+          "required": true
+        }
+      },
+      "examples": [
+        {
+          "description": "直接上传文件",
+          "parameters": {
+            "image_data": "data:image/jpeg;base64,/9j/4AAQSkZJRgABAQEAYABgAAD/2wBDAAIBAQIB",
+            "filename": "my-photo.jpg"
+          }
+        },
+        {
+          "description": "上传PNG图片",
+          "parameters": {
+            "image_data": "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg==",
+            "filename": "logo.png"
           }
         }
       ]
@@ -73,18 +117,24 @@
   ],
   "conversation_starters": [
     "帮我把这张图片上传到云端：[图片URL]",
+    "上传这个文件帮我生成永久链接",
     "我需要为这张图片生成永久链接",
     "批量上传这些图片并返回链接",
     "查看这张上传图片的详细信息",
-    "把我的图片转换为可分享的URL"
+    "把我的图片转换为可分享的URL",
+    "直接上传这张图片：[拖拽或粘贴图片]",
+    "从base64数据上传图片"
   ],
   "capabilities": [
     "支持多种图片格式：JPEG, PNG, GIF, WebP, SVG等",
+    "支持URL上传和直接文件上传",
     "自动生成唯一文件名防止冲突",
     "全球CDN加速访问",
     "永久存储，链接不会过期",
-    "文件大小和类型验证",
-    "详细的图片元数据信息"
+    "文件大小和类型验证（最大10MB）",
+    "Base64数据自动识别和转换",
+    "详细的图片元数据信息",
+    "支持data URL格式"
   ],
   "privacy_policy": "https://image2url.com/privacy",
   "terms_of_service": "https://image2url.com/terms",

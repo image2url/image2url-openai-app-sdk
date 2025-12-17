@@ -16,8 +16,15 @@ export interface ImageInfoResponse {
 }
 
 export interface UploadToolArgs {
-  image_url: string;
+  image_url?: string;
+  image_data?: string; // Base64 encoded image data
   filename?: string;
+}
+
+export interface FileUploadToolArgs {
+  image_data: string; // Base64 encoded image data
+  filename: string;   // Original filename with extension
+  mime_type?: string; // MIME type of the image
 }
 
 export interface ImageInfoToolArgs {

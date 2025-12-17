@@ -5,6 +5,8 @@ import {
   generateFilename,
   getFileExtension,
   fetchImageBuffer,
+  parseBase64ImageData,
+  getContentTypeFromExtension,
   formatFileSize
 } from "./utils";
 import {
@@ -12,6 +14,7 @@ import {
   ImageUploadResponse,
   ImageInfoResponse,
   UploadToolArgs,
+  FileUploadToolArgs,
   ImageInfoToolArgs
 } from "./types";
 
@@ -46,53 +49,108 @@ const server = new Server({
 // Tool: Upload Image
 server.addTool({
   name: "upload_image",
-  description: "Upload an image and convert it to a permanent URL",
+  description: "Upload an image from URL or base64 data and convert it to a permanent URL",
   parameters: {
     type: "object",
     properties: {
       image_url: {
         type: "string",
         format: "uri",
-        description: "The URL of the image to upload"
+        description: "The URL of the image to upload (alternative to image_data)"
+      },
+      image_data: {
+        type: "string",
+        description: "Base64 encoded image data (alternative to image_url). Can be data URL format or raw base64."
       },
       filename: {
         type: "string",
-        description: "Optional custom filename (without extension)"
+        description: "Optional custom filename (without extension). Required when using image_data."
       }
     },
-    required: ["image_url"]
+    anyOf: [
+      { required: ["image_url"] },
+      { required: ["image_data", "filename"] }
+    ]
   }
 }, async (args: UploadToolArgs): Promise<ImageUploadResponse> => {
   try {
-    const { image_url, filename } = args;
+    const { image_url, image_data, filename } = args;
 
-    // Fetch and validate image
-    const { buffer, contentType, size } = await fetchImageBuffer(image_url);
-    const fileExtension = getFileExtension(contentType);
-    const baseFilename = generateFilename(filename);
+    let buffer: Buffer;
+    let contentType: string;
+    let size: number;
+    let finalFilename: string;
+    let fileExtension: string;
+    let baseFilename: string;
 
-    // Generate final filename
-    const finalFilename = `images/${baseFilename}.${fileExtension}`;
+    if (image_url) {
+      // Handle URL upload
+      const imageInfo = await fetchImageBuffer(image_url);
+      buffer = imageInfo.buffer;
+      contentType = imageInfo.contentType;
+      size = imageInfo.size;
+      fileExtension = getFileExtension(contentType);
+      baseFilename = generateFilename(filename);
 
-    // Upload to R2
-    const result = await r2Client.uploadImage(
-      buffer,
-      finalFilename,
-      contentType,
-      {
-        'original-url': image_url,
-        'custom-filename': filename || '',
-      }
-    );
+      finalFilename = `images/${baseFilename}.${fileExtension}`;
 
-    return {
-      success: true,
-      url: result.url,
-      filename: result.filename,
-      size,
-      type: contentType,
-      uploaded_at: new Date().toISOString()
-    };
+      // Upload to R2
+      const result = await r2Client.uploadImage(
+        buffer,
+        finalFilename,
+        contentType,
+        {
+          'original-url': image_url,
+          'custom-filename': filename || '',
+          'upload-source': 'url'
+        }
+      );
+
+      return {
+        success: true,
+        url: result.url,
+        filename: result.filename,
+        size,
+        type: contentType,
+        uploaded_at: new Date().toISOString()
+      };
+
+    } else if (image_data && filename) {
+      // Handle base64 data upload
+      const parsedContentType = getContentTypeFromExtension(filename);
+      const imageInfo = parseBase64ImageData(image_data, parsedContentType);
+      buffer = imageInfo.buffer;
+      contentType = imageInfo.contentType;
+      size = imageInfo.size;
+      fileExtension = getFileExtension(contentType);
+      baseFilename = generateFilename(filename.replace(/\.[^/.]+$/, "")); // Remove extension
+
+      finalFilename = `images/${baseFilename}.${fileExtension}`;
+
+      // Upload to R2
+      const result = await r2Client.uploadImage(
+        buffer,
+        finalFilename,
+        contentType,
+        {
+          'original-filename': filename,
+          'custom-filename': baseFilename,
+          'upload-source': 'base64'
+        }
+      );
+
+      return {
+        success: true,
+        url: result.url,
+        filename: result.filename,
+        size,
+        type: contentType,
+        uploaded_at: new Date().toISOString()
+      };
+
+    } else {
+      throw new Error("Either image_url or (image_data and filename) must be provided");
+    }
 
   } catch (error) {
     throw new Error(`Upload failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
@@ -141,15 +199,124 @@ server.addTool({
   }
 });
 
+// Tool: Upload File (direct file upload)
+server.addTool({
+  name: "upload_file",
+  description: "Upload a file directly using base64 data and convert it to a permanent URL",
+  parameters: {
+    type: "object",
+    properties: {
+      image_data: {
+        type: "string",
+        description: "Base64 encoded image data. Can be data URL format (data:image/png;base64,xxxx) or raw base64 string."
+      },
+      filename: {
+        type: "string",
+        description: "Original filename with extension (e.g., 'photo.jpg', 'image.png')"
+      }
+    },
+    required: ["image_data", "filename"]
+  }
+}, async (args: FileUploadToolArgs): Promise<ImageUploadResponse> => {
+  try {
+    const { image_data, filename } = args;
+
+    // Parse base64 data
+    const parsedContentType = getContentTypeFromExtension(filename);
+    const { buffer, contentType, size } = parseBase64ImageData(image_data, parsedContentType);
+    const fileExtension = getFileExtension(contentType);
+    const baseFilename = generateFilename(filename.replace(/\.[^/.]+$/, "")); // Remove extension
+
+    // Generate final filename
+    const finalFilename = `images/${baseFilename}.${fileExtension}`;
+
+    // Upload to R2
+    const result = await r2Client.uploadImage(
+      buffer,
+      finalFilename,
+      contentType,
+      {
+        'original-filename': filename,
+        'custom-filename': baseFilename,
+        'upload-source': 'direct_file'
+      }
+    );
+
+    return {
+      success: true,
+      url: result.url,
+      filename: result.filename,
+      size,
+      type: contentType,
+      uploaded_at: new Date().toISOString()
+    };
+
+  } catch (error) {
+    throw new Error(`File upload failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
+  }
+});
+
+// Health check endpoint
+server.addTool({
+  name: "health_check",
+  description: "Check MCP server health and configuration",
+  parameters: {
+    type: "object",
+    properties: {},
+    required: []
+  }
+}, async () => {
+  try {
+    // Check R2 connection by testing a simple operation
+    const testFilename = `health-check-${Date.now()}.txt`;
+    await r2Client.uploadImage(
+      Buffer.from('health check'),
+      `temp/${testFilename}`,
+      'text/plain',
+      { 'health-check': 'true' }
+    );
+
+    return {
+      status: "healthy",
+      timestamp: new Date().toISOString(),
+      version: "1.0.0",
+      services: {
+        mcp_server: "online",
+        r2_storage: "connected",
+        upload_capability: "functional"
+      },
+      uptime: process.uptime(),
+      memory_usage: process.memoryUsage(),
+      domain: process.env.MCP_DOMAIN || "localhost"
+    };
+  } catch (error) {
+    return {
+      status: "unhealthy",
+      timestamp: new Date().toISOString(),
+      error: error instanceof Error ? error.message : "Unknown error",
+      services: {
+        mcp_server: "online",
+        r2_storage: "disconnected",
+        upload_capability: "failed"
+      }
+    };
+  }
+});
+
 // Start server
+const port = parseInt(process.env.PORT || "3001");
+const host = process.env.HOST || "0.0.0.0"; // Listen on all interfaces for production
+
 server.start({
-  port: parseInt(process.env.PORT || "3001"),
-  host: process.env.HOST || "localhost"
+  port,
+  host
 }).then(() => {
-  console.log("=� Image2URL MCP Server started successfully");
-  console.log(`=� Server running on ${process.env.HOST || "localhost"}:${process.env.PORT || "3001"}`);
+  console.log("🚀 Image2URL MCP Server started successfully");
+  console.log(`📡 Server running on ${host}:${port}`);
+  console.log(`🌐 MCP Server URL: https://${process.env.MCP_DOMAIN || 'mcp.image2url.com'}`);
+  console.log(`🔗 Health check: https://${process.env.MCP_DOMAIN || 'mcp.image2url.com'}/health`);
 }).catch((error) => {
-  console.error("L Failed to start server:", error);
+  console.error("❌ Failed to start server:", error);
   process.exit(1);
 });
 

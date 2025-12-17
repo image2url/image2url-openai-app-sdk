@@ -4,11 +4,12 @@
 
 ## 🚀 特性
 
-- **🖼️ 图片上传**: 支持从URL上传图片并转换为永久链接
+- **🖼️ 多种上传方式**: 支持URL上传、Base64数据上传、直接文件上传
 - **☁️ 云存储**: 基于Cloudflare R2的高可靠性存储
 - **⚡ 高性能**: 快速上传和全球CDN分发
-- **🔒 安全**: 文件类型验证和大小限制
+- **🔒 安全**: 文件类型验证和大小限制（最大10MB）
 - **🌐 MCP集成**: 与ChatGPT深度集成，支持智能对话
+- **📱 用户友好**: 无需提供URL，直接拖拽上传文件
 
 ## 📦 安装
 
@@ -48,11 +49,27 @@ npm start
 ## 🛠️ API工具
 
 ### upload_image
-上传图片并转换为永久URL
+上传图片并转换为永久URL（支持多种上传方式）
 
-**参数：**
-- `image_url` (string, 必需): 图片的URL地址
-- `filename` (string, 可选): 自定义文件名（不含扩展名）
+**参数（二选一）：**
+- `image_url` (string): 图片的URL地址
+- `image_data` (string): Base64编码的图片数据
+- `filename` (string): 自定义文件名（使用image_data时必需）
+
+**示例：**
+```javascript
+// URL上传
+{
+  "image_url": "https://example.com/photo.jpg",
+  "filename": "my-photo"
+}
+
+// Base64上传
+{
+  "image_data": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAAB...",
+  "filename": "chart"
+}
+```
 
 **返回：**
 ```json
@@ -63,6 +80,21 @@ npm start
   "size": 1024000,
   "type": "image/jpeg",
   "uploaded_at": "2024-01-01T00:00:00.000Z"
+}
+```
+
+### upload_file
+专门用于直接文件上传的工具
+
+**参数：**
+- `image_data` (string, 必需): Base64编码的图片数据
+- `filename` (string, 必需): 原始文件名（含扩展名）
+
+**示例：**
+```javascript
+{
+  "image_data": "data:image/jpeg;base64,/9j/4AAQSkZJRgABAQEAYABgAAD...",
+  "filename": "vacation-photo.jpg"
 }
 ```
 
@@ -88,8 +120,16 @@ npm start
 此SDK基于OpenAI Apps SDK构建，可以直接与ChatGPT集成。用户可以在ChatGPT对话中使用以下功能：
 
 1. **图片上传**: "请帮我把这张图片上传到Image2URL"
-2. **批量处理**: "帮我把这些图片都转换为永久链接"
-3. **信息查询**: "查看这张上传图片的详细信息"
+2. **直接文件上传**: "我有一个文件要上传"（拖拽或粘贴文件）
+3. **Base64上传**: "我有base64图片数据要上传"
+4. **批量处理**: "帮我把这些图片都转换为永久链接"
+5. **信息查询**: "查看这张上传图片的详细信息"
+
+### 用户体验升级
+- ✅ **无需URL**: 用户可以直接拖拽文件到对话框
+- ✅ **自动识别**: 系统自动识别文件格式和大小
+- ✅ **实时反馈**: 上传进度和结果即时显示
+- ✅ **多格式支持**: JPEG, PNG, GIF, WebP, SVG等
 
 ## 🌐 部署
 
