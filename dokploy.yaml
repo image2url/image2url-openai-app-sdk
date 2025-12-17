@@ -1,0 +1,38 @@
+# Dokploy Configuration for Image2URL OpenAI Apps SDK
+name: image2url-openai-app-sdk
+description: Convert images to permanent URLs using Cloudflare R2 storage
+
+# Build configuration
+build:
+  builder: dockerfile
+  dockerfile: ./Dockerfile
+
+# Environment variables (required)
+environment:
+  - NODE_ENV=production
+  - PORT=3001
+  - HOST=0.0.0.0
+
+# Health check
+health:
+  path: /health
+  port: 3001
+  interval: 30s
+  timeout: 10s
+  retries: 3
+
+# Resources
+resources:
+  memory: 512Mi
+  cpu: 250m
+
+# Autoscaling (optional)
+autoscaling:
+  minReplicas: 1
+  maxReplicas: 3
+  targetCpuUtilization: 70
+
+# Ingress/Networking
+ingress:
+  port: 3001
+  host: mcp.image2url.com

@@ -133,22 +133,49 @@ npm start
 
 ## 🌐 部署
 
-### Vercel部署
-1. 将代码推送到GitHub
-2. 连接Vercel账号
-3. 设置环境变量
-4. 自动部署
+### Dokploy部署 (推荐)
+1. 使用提供的 `dokploy.yaml` 配置文件
+2. 设置以下环境变量：
+   ```env
+   R2_ACCOUNT_ID=your_cloudflare_account_id
+   R2_ACCESS_KEY_ID=your_r2_access_key_id
+   R2_SECRET_ACCESS_KEY=your_r2_secret_access_key
+   R2_BUCKET_NAME=your_r2_bucket_name
+   R2_PUBLIC_URL=https://your-bucket-url.r2.dev
+   MCP_DOMAIN=mcp.image2url.com
+   ```
+3. 部署后会自动在以下端点提供服务：
+   - HTTP API: `http://your-domain.com/mcp`
+   - 健康检查: `http://your-domain.com/health`
 
 ### Docker部署
 ```dockerfile
 FROM node:18-alpine
 WORKDIR /app
 COPY package*.json ./
-RUN npm install
+RUN npm ci --only=production
 COPY . .
 RUN npm run build
 EXPOSE 3001
 CMD ["npm", "start"]
+```
+
+### 本地开发
+```bash
+# 安装依赖
+npm install
+
+# 开发模式 (HTTP服务器)
+npm run dev
+
+# 构建项目
+npm run build
+
+# 生产模式启动
+npm start
+
+# 仅MCP服务器模式
+npm run mcp
 ```
 
 ## 📄 许可证
