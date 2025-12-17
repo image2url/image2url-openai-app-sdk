@@ -1,4 +1,4 @@
-import express from 'express';
+import express, { Request, Response } from 'express';
 import { spawn } from 'child_process';
 import path from 'path';
 
@@ -10,7 +10,7 @@ app.use(express.json({ limit: '50mb' }));
 app.use(express.raw({ type: 'application/vnd.openai.mcp.v1+json', limit: '50mb' }));
 
 // Health check endpoint
-app.get('/health', (req, res) => {
+app.get('/health', (req: Request, res: Response) => {
   res.json({
     status: 'healthy',
     timestamp: new Date().toISOString(),
@@ -23,7 +23,7 @@ app.get('/health', (req, res) => {
 });
 
 // MCP endpoint - proxy requests to the MCP server
-app.post('/mcp', async (req, res) => {
+app.post('/mcp', async (req: Request, res: Response) => {
   try {
     // Spawn MCP server process
     const mcpServer = spawn('node', [path.join(__dirname, '../dist/index.js')], {
@@ -106,7 +106,7 @@ app.post('/mcp', async (req, res) => {
 });
 
 // Root endpoint with server info
-app.get('/', (req, res) => {
+app.get('/', (req: Request, res: Response) => {
   res.json({
     name: 'Image2URL MCP Server',
     version: '1.0.0',

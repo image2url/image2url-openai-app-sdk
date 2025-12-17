@@ -41,4 +41,4 @@ EXPOSE 3001
 ENV PORT=3001
 ENV HOST=0.0.0.0
 
-CMD ["node", "dist/index.js"]
+CMD ["node", "dist/http-server.js"]
