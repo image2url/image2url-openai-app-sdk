@@ -8,8 +8,8 @@ RUN apk add --no-cache libc6-compat
 WORKDIR /app
 
 # Install dependencies based on the preferred package manager
-COPY package.json package-lock.json* ./
-RUN npm ci --only=production
+COPY package*.json ./
+RUN if [ -f package-lock.json ]; then npm ci; else npm install; fi
 
 # Rebuild the source code only when needed
 FROM base AS builder
@@ -18,6 +18,7 @@ COPY --from=deps /app/node_modules ./node_modules
 COPY . .
 
 RUN npm run build
+RUN npm prune --omit=dev
 
 # Production image, copy all the files and run the app
 FROM base AS runner
@@ -37,7 +38,7 @@ USER nodejs
 
 EXPOSE 3001
 
-ENV PORT 3001
-ENV HOST "0.0.0.0"
+ENV PORT=3001
+ENV HOST=0.0.0.0
 
 CMD ["node", "dist/index.js"]
